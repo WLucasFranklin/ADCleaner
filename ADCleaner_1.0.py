@@ -496,7 +496,7 @@ def print_results(filename_prefix, intent, object_type, bypassed, disabled):
     print(f"{len(bypassed)} {object_type}s bypassed.")
     print(f"{len(disabled)} {object_type}s {intent.lower()}d.\n")
     print(f"List of bypassed {object_type}s saved in: {filename_prefix}_bypassed_{today}.csv")
-    print(f"List of {intent.lower}d {object_type}s saved in: {filename_prefix}_{intent.lower()}d_{today}.csv\n")
+    print(f"List of {intent.lower()}d {object_type}s saved in: {filename_prefix}_{intent.lower()}d_{today}.csv\n")
 
     print(f"Files saved to: {os.getcwd()}")
     input(f"\nPress {main_color}ENTER{RESET} to continue.")
