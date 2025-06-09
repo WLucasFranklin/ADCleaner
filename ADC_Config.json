@@ -1,0 +1,31 @@
+{
+  "All": {
+    "dry_run_default": "True"
+  },
+
+  "User": {
+
+    "_comment": "Any account added to this group will by excluded from disabling/deletion",
+    "user_bypass_group": "CN=Replace_With_AD_Retaining_Group",
+
+    "user_years_since_logon": 5,
+    "user_disabled_years": 1,
+    "exclude_name_starting_with": ""
+  },
+
+  "Computer": {
+
+    "_comment": "Any account added to this group will by excluded from disabling/deletion",
+    "computer_bypass_group": "CN=Replace_With_AD_Retaining_Group",
+
+    "computer_years_since_logon": 10,
+    "computer_disabled_years": 2,
+    "exclude_name_starting_with": "",
+    "exclude_computers_with_IPs": "True"
+  },
+
+  "Color": {
+    "_options": "LIGHT_CYAN | CYAN | RED | GREEN",
+    "main_color": "LIGHT_CYAN"
+  }
+}
