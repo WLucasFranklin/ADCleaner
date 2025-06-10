@@ -368,17 +368,19 @@ Print various statistics about AD.
 '''
 def ad_stats():
     print("")
-    commands = {
+    general_commands = {
         "TREES ": "$f = Get-ADForest; if ($f.Trees) { $f.Trees.Count } else { 1 }",
         "GPOs  ": "Get-GPO -All | Measure-Object | Select-Object -ExpandProperty Count",
         "OUs   ": "Get-ADOrganizationalUnit -Filter * | Measure-Object | Select-Object -ExpandProperty Count",
-        "ENABLED  USERS": "Get-ADUser -Filter 'Enabled -eq $true' | Measure-Object | Select-Object -ExpandProperty Count",
-        "DISABLED USERS": "Get-ADUser -Filter 'Enabled -ne $true' | Measure-Object | Select-Object -ExpandProperty Count",
-        "ENABLED  COMPUTERS": "Get-ADComputer -Filter 'Enabled -eq $true' | Measure-Object | Select-Object -ExpandProperty Count",
-        "DISABLED COMPUTERS": "Get-ADComputer -Filter 'Enabled -ne $true' | Measure-Object | Select-Object -ExpandProperty Count"
+        "\nENABLED  USERS  ": "Get-ADUser -Filter 'Enabled -eq $true' | Measure-Object | Select-Object -ExpandProperty Count",
+        "DISABLED USERS  ": "Get-ADUser -Filter 'Enabled -ne $true' | Measure-Object | Select-Object -ExpandProperty Count",
+        "ENABLED  ADMINCOUNT ": "Get-ADUser -Filter {Enabled -eq $true -and adminCount -eq 1} | Measure-Object | Select-Object -ExpandProperty Count",
+        "DISABLED ADMINCOUNT ": "Get-ADUser -Filter {Enabled -ne $true -and adminCount -eq 1} | Measure-Object | Select-Object -ExpandProperty Count",
+        "\nENABLED  COMPUTERS ": "Get-ADComputer -Filter 'Enabled -eq $true' | Measure-Object | Select-Object -ExpandProperty Count",
+        "DISABLED COMPUTERS ": "Get-ADComputer -Filter 'Enabled -ne $true' | Measure-Object | Select-Object -ExpandProperty Count"
     }
 
-    for label, ps_cmd in commands.items():
+    for label, ps_cmd in general_commands.items():
         output = run_powershell_command(ps_cmd).stdout.strip()
         print(f"{main_color}{label}: {RESET}{output}")
 
@@ -391,7 +393,8 @@ def ad_stats():
     }
     '''
     recycle_bin_status = run_powershell_command(recycle_bin_check_ps).stdout.strip()
-    print(f"{main_color}RECYCLE BIN:{RESET} {recycle_bin_status}")
+    print(f"\n{main_color}RECYCLE BIN:{RESET} {recycle_bin_status}")
+    
     
     input(f"\nPress {main_color}ENTER{RESET} to continue.")
 
