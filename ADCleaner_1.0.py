@@ -151,7 +151,7 @@ def clean_ad_objects(
     reader = csv.DictReader(io.StringIO(process.stdout))
 
     bypassed = []
-    disabled = []
+    affected = []
 
     for row in reader:
         try:
@@ -200,12 +200,12 @@ def clean_ad_objects(
             if bypass_condition(row):
                 bypassed.append(info)
             else:
-                disabled.append(info)
+                affected.append(info)
 
     spinner_done.set()
     spinner_thread.join()
 
-    print(f"{main_color}{len(disabled)} {object_type.upper()}S{RESET} are about to be {main_color}{intent.upper()}D{RESET}.")
+    print(f"{main_color}{len(affected)} {object_type.upper()}S{RESET} are about to be {main_color}{intent.upper()}D{RESET}.")
 
     get_consent(dry_run)
 
@@ -216,7 +216,7 @@ def clean_ad_objects(
     if not dry_run:
         with ThreadPoolExecutor(max_workers=5) as executor:
             futures = []
-            for obj in disabled:
+            for obj in affected:
                 ps_cmd = disable_command_template.format(get_identifier(obj))
                 futures.append(executor.submit(run_powershell_command, ps_cmd))
 
@@ -230,7 +230,7 @@ def clean_ad_objects(
     spinner_done.set()
     spinner_thread.join()
 
-    print_results(filename_prefix, intent, object_type, bypassed, disabled)
+    print_results(filename_prefix, intent, object_type, bypassed, affected)
 
     separator(main_color, RESET)
 
@@ -267,6 +267,7 @@ def user_cleaner(intent=None, dry_run=None):
         inactivity_years=int(config["User"].get("user_years_since_logon", 5))
         command_template = 'Disable-ADAccount -Identity "{}"'
 
+
     name_exclusion = config["User"]["exclude_name_starting_with"]
     def bypass_condition(r):
         sam_name = r.get("SamAccountName", "").strip()
@@ -300,12 +301,14 @@ Disable old AD computers.
 def computer_cleaner(intent, dry_run):
     if intent == "delete":
         computer_ps = '''
-        Get-ADComputer -Filter "Enabled -eq 'True'" -Properties IPv4Address, whenCreated, whenChanged, MemberOf, DistinguishedName |
+        Get-ADComputer -Filter "Enabled -ne 'True'" -Properties IPv4Address, whenCreated, whenChanged, MemberOf, DistinguishedName |
         Select-Object Name, IPv4Address, whenCreated, whenChanged, DistinguishedName,
         @{Name="MemberOf";Expression={($_.MemberOf -join ";")}} |
         ConvertTo-Csv -NoTypeInformation
         '''
         command_template = 'Remove-ADComputer -Identity "{}$" -Confirm:$false'
+        inactivity_years = int(config["Computer"].get("computer_disabled_years", 1))
+        
     elif intent == "disable":
         computer_ps = '''
         Get-ADComputer -Filter "Enabled -eq 'True'" -Properties IPv4Address, whenCreated, LastLogonDate, MemberOf, DistinguishedName |
@@ -314,6 +317,7 @@ def computer_cleaner(intent, dry_run):
         ConvertTo-Csv -NoTypeInformation
         '''
         command_template = 'Disable-ADAccount -Identity "{}$"'
+        inactivity_years = int(config["Computer"].get("computer_years_since_logon", 10))
         
 
     def get_identifier(r):
@@ -328,12 +332,10 @@ def computer_cleaner(intent, dry_run):
     bypass_group_pattern = config["Computer"].get("computer_bypass_group", "")
     exclude_if_has_ip = config["Computer"].get("exclude_computers_with_IPs", "true").lower() == "true"
 
-    
     def bypass_condition(r):
         name = r.get("Name","").strip()
         groups = r.get("MemberOf", "")
         ip = r.get("IPv4Address", "").strip()
-        
         
         name_match = name_exclusion and name.startswith(name_exclusion)
         group_match = re.search(bypass_group_pattern, groups)
@@ -345,7 +347,7 @@ def computer_cleaner(intent, dry_run):
         ps_command=computer_ps,
         object_type="computer",
         intent=intent,
-        inactivity_years=int(config["Computer"].get("computer_years_since_logon", 10)),
+        inactivity_years=inactivity_years,
         get_identifier=get_identifier,
         bypass_condition=bypass_condition,
         command_template=command_template,
@@ -478,7 +480,7 @@ Print results to files.
 
 6/2/2025
 '''
-def print_results(filename_prefix, intent, object_type, bypassed, disabled):
+def print_results(filename_prefix, intent, object_type, bypassed, affected):
     today = date.today().strftime("%Y-%m-%d")
     
     if bypassed:
@@ -487,14 +489,14 @@ def print_results(filename_prefix, intent, object_type, bypassed, disabled):
             writer.writeheader()
             writer.writerows(bypassed)
 
-    if disabled:        
+    if affected:        
         with open(f"{filename_prefix}s_{intent.lower()}d_{today}.csv", 'w', newline='') as csv_file:
-            writer = csv.DictWriter(csv_file, fieldnames=disabled[0].keys())
+            writer = csv.DictWriter(csv_file, fieldnames=affected[0].keys())
             writer.writeheader()
-            writer.writerows(disabled)
+            writer.writerows(affected)
     print(f"{main_color}OPERATIONS COMPLETED{RESET}")
     print(f"{len(bypassed)} {object_type}s bypassed.")
-    print(f"{len(disabled)} {object_type}s {intent.lower()}d.\n")
+    print(f"{len(affected)} {object_type}s {intent.lower()}d.\n")
     print(f"List of bypassed {object_type}s saved in: {filename_prefix}_bypassed_{today}.csv")
     print(f"List of {intent.lower()}d {object_type}s saved in: {filename_prefix}_{intent.lower()}d_{today}.csv\n")
 
