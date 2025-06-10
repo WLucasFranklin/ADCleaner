@@ -269,11 +269,15 @@ def user_cleaner(intent=None, dry_run=None):
 
 
     name_exclusion = config["User"]["exclude_name_starting_with"]
+    critical_accounts = {"administrator", "krbtgt", "guest"}
     def bypass_condition(r):
         sam_name = r.get("SamAccountName", "").strip()
         group_match = re.search(config["User"].get("user_bypass_group", ""), r.get("MemberOf", ""))
         name_match = name_exclusion and sam_name.startswith(name_exclusion)
-        return group_match or name_match
+        name_is_critical = sam_name in critical_accounts
+        
+        return group_match or name_match or name_is_critical
+
 
     clean_ad_objects(
         ps_command=user_ps,
@@ -340,8 +344,11 @@ def computer_cleaner(intent, dry_run):
         name_match = name_exclusion and name.startswith(name_exclusion)
         group_match = re.search(bypass_group_pattern, groups)
         ip_check = exclude_if_has_ip and ip != ""
+
+        # Exclude Domain Controllers
+        is_domain_controller = "CN=Domain Controllers" in groups
         
-        return group_match or name_match or ip_check
+        return group_match or name_match or ip_check or is_domain_controller
 
     clean_ad_objects(
         ps_command=computer_ps,
@@ -487,21 +494,21 @@ def print_results(filename_prefix, intent, object_type, bypassed, affected):
     today = date.today().strftime("%Y-%m-%d")
     
     if bypassed:
-        with open(f"{filename_prefix}s_bypassed_{today}.csv", 'w', newline='') as csv_file:
+        with open(f"{today}_{filename_prefix}s_{intent.lower()}_bypassed.csv", 'w', newline='') as csv_file:
             writer = csv.DictWriter(csv_file, fieldnames=bypassed[0].keys())
             writer.writeheader()
             writer.writerows(bypassed)
 
     if affected:        
-        with open(f"{filename_prefix}s_{intent.lower()}d_{today}.csv", 'w', newline='') as csv_file:
+        with open(f"{today}_{filename_prefix}s_{intent.lower()}d.csv", 'w', newline='') as csv_file:
             writer = csv.DictWriter(csv_file, fieldnames=affected[0].keys())
             writer.writeheader()
             writer.writerows(affected)
     print(f"{main_color}OPERATIONS COMPLETED{RESET}")
     print(f"{len(bypassed)} {object_type}s bypassed.")
     print(f"{len(affected)} {object_type}s {intent.lower()}d.\n")
-    print(f"List of bypassed {object_type}s saved in: {filename_prefix}_bypassed_{today}.csv")
-    print(f"List of {intent.lower()}d {object_type}s saved in: {filename_prefix}_{intent.lower()}d_{today}.csv\n")
+    print(f"List of bypassed {object_type}s saved in: {today}_{filename_prefix}_{intent}_bypassed.csv")
+    print(f"List of {intent.lower()}d {object_type}s saved in: {today}_{filename_prefix}_{intent.lower()}d.csv\n")
 
     print(f"Files saved to: {os.getcwd()}")
     input(f"\nPress {main_color}ENTER{RESET} to continue.")
