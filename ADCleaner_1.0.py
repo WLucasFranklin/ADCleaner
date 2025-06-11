@@ -254,7 +254,7 @@ def user_cleaner(intent=None, dry_run=None):
         @{Name="MemberOf";Expression={($_.MemberOf -join ";")}} |
         ConvertTo-Csv -NoTypeInformation
         '''
-        command_template = 'Remove-ADAccount -Identity "{}" -Confirm:$false'
+        command_template = 'Remove-ADUser -Identity "{}" -Confirm:$false'
         inactivity_years=int(config["User"].get("user_disabled_years", 1))
         
     elif intent == "disable":
