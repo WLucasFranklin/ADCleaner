@@ -2,6 +2,8 @@
 Active Directory Cleaner (ADC) v1.0
 ADC is a Python-based automation tool designed to clean up stale Active Directory (AD) accounts. It identifies and optionally disables or deletes inactive users and computers based on customizable thresholds and rules.
 
+![ADCleaner Main Menu](ADCleaner_Image.png)
+
 # Warning
 This tool is in development. While disabling AD objects have been thoroughly tested, deleting objects have not. Deleting objects should work in theory, but it is currently untested.
 
